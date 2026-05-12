@@ -2,8 +2,8 @@ import { GameStatusConstant } from "./constant/game_status";
 import { Grid } from "./grid";
 import { Tracer } from "./tracer";
 import { MoveTypeConstant } from "./constant/move_type";
-import fs from "node:fs";
 import _ from "lodash";
+import { levelMap } from "./level";
 
 export class Game {
     private grid: Grid;
@@ -17,17 +17,22 @@ export class Game {
         this.moveNum = 0;
         this.status = GameStatusConstant.RUNNING;
         this.tracer = new Tracer();
+        this.tracer.setInit(
+            _.cloneDeep(this.grid.getBoxPoints()),
+            _.cloneDeep(this.grid.getPlayerPoint()),
+            this.status,
+            this.moveNum,
+        );
         this.level = level;
     }
 
     public loadGrid(level: number): Grid {
-        const file = fs.readFileSync(`./level/${level}.json`, "utf-8");
-        const json = JSON.parse(file);
-        const boxPoints = new Set(json.boxPoints) as Set<number>;
-        const targetPoints = new Set(json.targetPoints) as Set<number>;
-        const border = new Set(json.border) as Set<number>;
+        const g = levelMap.get(level);
+        if (!g) {
+            throw new Error("ERROR! No such level.");
+        }
 
-        return new Grid(json.height, json.width, border, boxPoints, targetPoints, json.playerPoint);
+        return new Grid(g.height, g.width, g.border, g.boxPoints, g.targetPoints, g.playerPoint);
     }
 
     public move(type: MoveTypeConstant): void {
@@ -141,10 +146,15 @@ export class Game {
     }
 
     public redo(): void {
-        this.moveNum = 0;
-        this.status = GameStatusConstant.RUNNING;
-        this.grid = this.loadGrid(this.level);
-        this.tracer = new Tracer();
+        const ckpt = this.tracer.redo();
+        if (!ckpt) {
+            return;
+        }
+        this.moveNum = ckpt.getMoveNum();
+        this.status = ckpt.getStatus();
+        this.grid.setBoxPoints(ckpt.getBoxPoints());
+        this.grid.setPlayerPoint(ckpt.getPlayerPoint());
+        this.tracer.resetHistory();
     }
 
     public getGrid(): Grid {

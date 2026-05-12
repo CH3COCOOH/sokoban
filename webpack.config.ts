@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const config: webpack.Configuration = {
-    entry: "./main.ts",
+    entry: "./src/backend/main.ts",
     target: "node",
     mode: "development",
     module: {

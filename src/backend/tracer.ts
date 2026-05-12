@@ -2,9 +2,11 @@ import { GameStatusConstant } from "./constant/game_status";
 
 export class Tracer {
     private history: Checkpoint[];
+    private initCkpt: Checkpoint | null;
 
     constructor() {
         this.history = [];
+        this.initCkpt = null;
     }
 
     public undo(): Checkpoint | null {
@@ -12,6 +14,24 @@ export class Tracer {
             return null;
         }
         return this.history.pop()!;
+    }
+
+    public setInit(
+        boxPoints: Set<number>,
+        playerPoint: number,
+        status: GameStatusConstant,
+        moveNum: number,
+    ): void {
+        const ckpt = new Checkpoint(boxPoints, playerPoint, status, moveNum);
+        this.initCkpt = ckpt;
+    }
+
+    public redo(): Checkpoint | null {
+        return this.initCkpt;
+    }
+
+    public resetHistory(): void {
+        this.history = [];
     }
 
     public record(
