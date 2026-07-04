@@ -1,10 +1,30 @@
-export const levelMap: Map<number, Record<string, any>> = new Map();
+/*
+ * 1是玩家
+ * x是障碍
+ * @是目标点
+ * B是箱子
+ * +是空地
+ * -是不可达空地
+ */
+export const levelMap: Map<number, string> = new Map();
 
-levelMap.set(1, {
-    width: 6,
-    height: 6,
-    playerPoint: 16,
-    boxPoints: new Set([15, 20]),
-    targetPoints: new Set([22, 28]),
-    border: new Set([0, 1, 2, 3, 4, 6, 10, 11, 12, 17, 18, 19, 23, 25, 29, 31, 32, 33, 34, 35]),
-});
+levelMap.set(
+    1,
+    `
+    xxxxx-
+    x+++xx
+    x++B1x
+    xxB+@x
+    -x++@x
+    -xxxxx
+`,
+);
+
+levelMap.set(
+    2,
+    `
+    xxxxxx
+    x1B+@x
+    xxxxxx
+`,
+);

@@ -1,20 +1,17 @@
 import { MoveTypeConstant } from "./constant/move_type";
-import { Game } from "./game";
 import _ from "lodash";
+import type { Grid } from "./grid";
 
 export class Solver {
-    private game: Game;
+    private grid: Grid;
 
-    constructor(level: number) {
-        this.game = new Game(level);
+    constructor(grid: Grid) {
+        this.grid = _.cloneDeep(grid);
     }
 
     // dfs
-    public solve(): string {
-        let start = this.serialize(
-            this.game.getGrid().getBoxPoints(),
-            this.game.getGrid().getPlayerPoint(),
-        );
+    public solve(): MoveTypeConstant[] | null {
+        let start = this.serialize(this.grid.getBoxPoints(), this.grid.getPlayerPoint());
 
         const path = new Map<string, string>();
         path.set(start, "");
@@ -24,14 +21,14 @@ export class Solver {
         let cur: string;
         while (true) {
             if (next.length === 0) {
-                return "";
+                return null;
             }
             cur = next.pop()!;
             const [boxPoints, playerPoint] = this.deserialize(cur);
-            this.game.getGrid().setBoxPoints(boxPoints);
-            this.game.getGrid().setPlayerPoint(playerPoint);
-            if (this.game.isWin()) {
-                return this.solutionToString(path, cur);
+            this.grid.setBoxPoints(boxPoints);
+            this.grid.setPlayerPoint(playerPoint);
+            if (this.isWin()) {
+                return this.solutionToDirection(path, cur);
             }
 
             const types = [
@@ -63,8 +60,17 @@ export class Solver {
         return [boxPoints, playerPoint];
     }
 
+    public isWin(): boolean {
+        for (const point of this.grid.getBoxPoints()) {
+            if (!this.grid.getTargetPoints().has(point)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public canMove(type: MoveTypeConstant): string {
-        const grid = this.game.getGrid();
+        const grid = this.grid;
         let newPoint = grid.getPlayerPoint();
         if (type === MoveTypeConstant.UP) {
             if (newPoint < grid.getWidth()) {
@@ -131,7 +137,35 @@ export class Solver {
         return this.serialize(boxSet, newPoint);
     }
 
-    public solutionToString(path: Map<string, string>, end: string): string {
+    public solutionToDirection(path: Map<string, string>, end: string): MoveTypeConstant[] {
+        const result = [];
+        let cur = end;
+        const points = [];
+
+        while (true) {
+            const [boxPoints, playerPoint] = this.deserialize(cur);
+            points.push(playerPoint);
+            cur = path.get(cur)!;
+            if (!cur) {
+                break;
+            }
+        }
+        for (let i = points.length - 1; i > 0; i--) {
+            const diff = points[i - 1]! - points[i]!;
+            if (diff === 1) {
+                result.push(MoveTypeConstant.RIGHT);
+            } else if (diff === -1) {
+                result.push(MoveTypeConstant.LEFT);
+            } else if (diff === this.grid.getWidth()) {
+                result.push(MoveTypeConstant.DOWN);
+            } else if (diff === -this.grid.getWidth()) {
+                result.push(MoveTypeConstant.UP);
+            }
+        }
+        return result;
+    }
+
+    public solutionToReadableString(path: Map<string, string>, end: string): string {
         let count = 0;
         let cur = end;
         let result = "";
@@ -147,7 +181,7 @@ export class Solver {
             count++;
         }
 
-        const width = this.game.getGrid().getWidth();
+        const width = this.grid.getWidth();
         while (points.length !== 0) {
             const point = points.pop()!;
             const x = point % width;

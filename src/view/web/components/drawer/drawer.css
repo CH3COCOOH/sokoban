@@ -1,0 +1,17 @@
+@keyframes appear {
+    from {left: -240px;}
+    to {left: 0;}
+}
+
+@keyframes disappear {
+    from {left: 0;}
+    to {left: -240px; display: none;}
+}
+
+.appear {
+    animation: appear 1000ms;
+}
+
+.disappear {
+    animation: disappear 1000ms;
+}

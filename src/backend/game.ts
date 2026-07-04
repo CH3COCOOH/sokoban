@@ -1,9 +1,10 @@
 import { GameStatusConstant } from "./constant/game_status";
 import { Grid } from "./grid";
-import { Tracer } from "./tracer";
+import type { Tracer } from "./tracer/tracer";
 import { MoveTypeConstant } from "./constant/move_type";
 import _ from "lodash";
 import { levelMap } from "./level";
+import { SingleTracer } from "./tracer/single_tracer";
 
 export class Game {
     private grid: Grid;
@@ -16,7 +17,7 @@ export class Game {
         this.grid = this.loadGrid(level);
         this.moveNum = 0;
         this.status = GameStatusConstant.RUNNING;
-        this.tracer = new Tracer();
+        this.tracer = new SingleTracer();
         this.tracer.setInit(
             _.cloneDeep(this.grid.getBoxPoints()),
             _.cloneDeep(this.grid.getPlayerPoint()),
@@ -27,44 +28,86 @@ export class Game {
     }
 
     public loadGrid(level: number): Grid {
-        const g = levelMap.get(level);
-        if (!g) {
+        let gridStr = levelMap.get(level);
+        if (!gridStr) {
             throw new Error("ERROR! No such level.");
         }
+        gridStr = gridStr.trim();
 
-        return new Grid(g.height, g.width, g.border, g.boxPoints, g.targetPoints, g.playerPoint);
+        let height = 0;
+        let width = 0;
+        const border = new Set<number>();
+        const boxPoints = new Set<number>();
+        const targetPoints = new Set<number>();
+        const space = new Set<number>();
+        const uspace = new Set<number>();
+        let playerPoint = 0;
+
+        let i = -1;
+        for (const c of gridStr) {
+            if (c === " ") {
+                continue;
+            }
+            if (c === "\n") {
+                height++;
+                if (width === 0) {
+                    width = i + 1;
+                }
+                continue;
+            }
+
+            i++;
+            if (c === "B") {
+                boxPoints.add(i);
+                space.add(i);
+            } else if (c === "@") {
+                targetPoints.add(i);
+            } else if (c === "1") {
+                playerPoint = i;
+                space.add(i);
+            } else if (c === "x") {
+                border.add(i);
+            } else if (c === "+") {
+                space.add(i);
+            } else if (c === "-") {
+                uspace.add(i);
+            }
+        }
+        height++;
+
+        return new Grid(height, width, border, boxPoints, targetPoints, playerPoint, space, uspace);
     }
 
-    public move(type: MoveTypeConstant): void {
+    public move(type: MoveTypeConstant): boolean {
         if (this.status !== GameStatusConstant.RUNNING) {
-            return;
+            return false;
         }
 
         let newPoint = this.grid.getPlayerPoint();
         if (type === MoveTypeConstant.UP) {
             if (newPoint < this.grid.getWidth()) {
-                return;
+                return false;
             }
             newPoint -= this.grid.getWidth();
         } else if (type === MoveTypeConstant.DOWN) {
             if (newPoint >= this.grid.getWidth() * (this.grid.getHeight() - 1)) {
-                return;
+                return false;
             }
             newPoint += this.grid.getWidth();
         } else if (type === MoveTypeConstant.LEFT) {
             if (newPoint % this.grid.getWidth() === 0) {
-                return;
+                return false;
             }
             newPoint -= 1;
         } else if (type === MoveTypeConstant.RIGHT) {
             if (newPoint % this.grid.getWidth() === this.grid.getWidth() - 1) {
-                return;
+                return false;
             }
             newPoint += 1;
         }
 
         if (this.grid.getBorder().has(newPoint)) {
-            return;
+            return false;
         }
 
         // 推到箱子
@@ -72,33 +115,40 @@ export class Game {
         if (this.grid.getBoxPoints().has(newPoint)) {
             if (type === MoveTypeConstant.UP) {
                 if (newPoint < this.grid.getWidth()) {
-                    return;
+                    return false;
                 }
                 newBoxPoint = newPoint - this.grid.getWidth();
             } else if (type === MoveTypeConstant.DOWN) {
                 if (newPoint >= this.grid.getWidth() * (this.grid.getHeight() - 1)) {
-                    return;
+                    return false;
                 }
                 newBoxPoint = newPoint + this.grid.getWidth();
             } else if (type === MoveTypeConstant.LEFT) {
                 if (newPoint % this.grid.getWidth() === 0) {
-                    return;
+                    return false;
                 }
                 newBoxPoint = newPoint - 1;
             } else if (type === MoveTypeConstant.RIGHT) {
                 if (newPoint % this.grid.getWidth() === this.grid.getWidth() - 1) {
-                    return;
+                    return false;
                 }
                 newBoxPoint = newPoint + 1;
             }
         }
 
         if (this.grid.getBorder().has(newBoxPoint)) {
-            return;
+            return false;
         }
         if (this.grid.getBoxPoints().has(newBoxPoint)) {
-            return;
+            return false;
         }
+
+        this.tracer.record(
+            _.cloneDeep(this.grid.getBoxPoints()),
+            _.cloneDeep(this.grid.getPlayerPoint()),
+            this.status,
+            this.moveNum,
+        );
 
         if (newBoxPoint !== -1) {
             const boxSet = this.grid.getBoxPoints();
@@ -110,12 +160,8 @@ export class Game {
             this.status = GameStatusConstant.WIN;
         }
         this.moveNum++;
-        this.tracer.record(
-            _.cloneDeep(this.grid.getBoxPoints()),
-            _.cloneDeep(this.grid.getPlayerPoint()),
-            this.status,
-            this.moveNum,
-        );
+
+        return true;
     }
 
     public isWin(): boolean {
@@ -152,7 +198,7 @@ export class Game {
         }
         this.moveNum = ckpt.getMoveNum();
         this.status = ckpt.getStatus();
-        this.grid.setBoxPoints(ckpt.getBoxPoints());
+        this.grid.setBoxPoints(_.cloneDeep(ckpt.getBoxPoints()));
         this.grid.setPlayerPoint(ckpt.getPlayerPoint());
         this.tracer.resetHistory();
     }
@@ -163,5 +209,9 @@ export class Game {
 
     public getStatus(): GameStatusConstant {
         return this.status;
+    }
+
+    public getMoveNum(): number {
+        return this.moveNum;
     }
 }

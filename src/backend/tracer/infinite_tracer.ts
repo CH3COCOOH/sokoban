@@ -1,6 +1,8 @@
-import { GameStatusConstant } from "./constant/game_status";
+import type { GameStatusConstant } from "../constant/game_status";
+import type { Tracer } from "./tracer";
+import { Checkpoint } from "./checkpoint";
 
-export class Tracer {
+export class InfiniteTracer implements Tracer {
     private history: Checkpoint[];
     private initCkpt: Checkpoint | null;
 
@@ -42,40 +44,5 @@ export class Tracer {
     ): void {
         const ckpt = new Checkpoint(boxPoints, playerPoint, status, moveNum);
         this.history.push(ckpt);
-    }
-}
-
-class Checkpoint {
-    private boxPoints: Set<number>;
-    private playerPoint: number;
-    private status: GameStatusConstant;
-    private moveNum: number;
-
-    constructor(
-        boxPoints: Set<number>,
-        playerPoint: number,
-        status: GameStatusConstant,
-        moveNum: number,
-    ) {
-        this.boxPoints = boxPoints;
-        this.playerPoint = playerPoint;
-        this.status = status;
-        this.moveNum = moveNum;
-    }
-
-    public getBoxPoints(): Set<number> {
-        return this.boxPoints;
-    }
-
-    public getPlayerPoint(): number {
-        return this.playerPoint;
-    }
-
-    public getStatus(): GameStatusConstant {
-        return this.status;
-    }
-
-    public getMoveNum(): number {
-        return this.moveNum;
     }
 }
