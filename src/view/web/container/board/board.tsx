@@ -142,17 +142,35 @@ export function Board({ setSideOpen }: any) {
     const board = [];
     let line = [];
     for (let i = 0; i < width * height; i++) {
+        const col = i % width;
+        const row = Math.floor(i / width);
         let e;
         if (i === playerPoint) {
-            e = <img src="/player.svg" />;
+            if ((row + col) % 2 === 0) {
+                e = <img src="/player.png" className="bg-teal-50" />;
+            } else {
+                e = <img src="/player.png" className="bg-teal-100" />;
+            }
         } else if (border?.has(i)) {
             e = <img src="/border.png" />;
         } else if (boxPoints?.has(i)) {
-            e = <img src="/box.svg" />;
+            if (targetPoints?.has(i)) {
+                e = <img src="/box_target.png" />;
+            } else {
+                e = <img src="/box.png" />;
+            }
         } else if (targetPoints?.has(i)) {
-            e = <img src="/target.png" />;
+            if ((row + col) % 2 === 0) {
+                e = <img src="/x.svg" className="bg-teal-50" />;
+            } else {
+                e = <img src="/x.svg" className="bg-teal-100" />;
+            }
         } else if (space?.has(i)) {
-            e = <img src="/space.png" />;
+            if ((row + col) % 2 === 0) {
+                e = <div style={{ width: boxWidth, height: boxWidth }} className="bg-teal-50" />;
+            } else {
+                e = <div style={{ width: boxWidth, height: boxWidth }} className="bg-teal-100" />;
+            }
         } else if (uspace?.has(i)) {
             e = <div />;
         }

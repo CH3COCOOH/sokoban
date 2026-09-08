@@ -12,7 +12,9 @@ export class SingleTracer implements Tracer {
     }
 
     public undo(): Checkpoint | null {
-        return this.history;
+        const history = this.history;
+        this.history = null;
+        return history;
     }
 
     public redo(): Checkpoint | null {
